@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>INSM — Les 5 Flashcard Quiz (bedrijf‑specifiek • hogere‑orde)</title>
+  <style>
+    :root{
+      --tio-blue:#2D0FDF;
+      --ink:#0f172a; /* slate-900 */
+      --muted:#475569; /* slate-600 */
+      --card:#f8fafc; /* slate-50 */
+      --ok:#16a34a;
+      --no:#dc2626;
+      --ring: rgba(45,15,223,.35);
+    }
+    html,body{height:100%}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+      background: var(--tio-blue);
+      color:#ffffff;
+    }
+    .container{max-width:980px;margin:0 auto;padding:24px}
+    .card{background:var(--card); border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 8px 24px rgba(2,6,23,.06); color:var(--ink)}
+    h1{font-size:clamp(20px,3.4vw,34px); line-height:1.1; margin:0 0 6px}
+    .subtitle{color:var(--muted); margin:0 0 16px}
+    .pill{display:inline-flex; align-items:center; gap:8px; background:#e2e8f0; color:var(--ink); border-radius:999px; padding:6px 12px; font-weight:700; font-size:12px; letter-spacing:.25px}
+    .grid{display:grid; gap:14px}
+    @media(min-width:720px){.grid{grid-template-columns:1fr 1fr}}
+
+    .company-list{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:8px}
+    .company{background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:12px; display:flex; align-items:center; gap:10px; cursor:pointer; transition:box-shadow .2s, border-color .2s}
+    .company input{accent-color:var(--tio-blue)}
+    .company:hover{box-shadow:0 6px 16px rgba(45,15,223,.12); border-color:#c7d2fe}
+
+    .btn{appearance:none; border:0; border-radius:14px; padding:12px 16px; font-weight:800; cursor:pointer; background:var(--tio-blue); color:white; box-shadow:0 10px 20px var(--ring)}
+    .btn:disabled{opacity:.55; cursor:not-allowed; box-shadow:none}
+    .btn.sec{background:white; color:var(--tio-blue); border:1px solid #c7d2fe}
+
+    .q-card{background:white; border:1px solid #e5e7eb; border-radius:16px; padding:18px}
+    .q-head{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px}
+    .q-topic{font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.14em; color:var(--tio-blue)}
+    .q-title{font-size:clamp(16px,2.4vw,22px); font-weight:750; margin:8px 0}
+
+    .choices{display:grid; gap:10px; margin:10px 0 6px}
+    .choice{border:1px solid #e5e7eb; border-radius:12px; padding:12px; background:#fdfdfd; display:flex; align-items:flex-start; gap:10px; cursor:pointer; transition: border-color .15s, background .15s}
+    .choice:hover{border-color:#cbd5e1}
+    .choice input{margin-top:2px; accent-color:var(--tio-blue)}
+
+    .feedback{border-radius:12px; padding:12px; margin-top:12px; display:none}
+    .feedback.ok{display:block; background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46}
+    .feedback.no{display:block; background:#fef2f2; border:1px solid #fecaca; color:#7f1d1d}
+
+    .hint{margin-top:10px; background:#eef2ff; border:1px dashed #c7d2fe; color:#1e3a8a; padding:10px; border-radius:10px; display:none}
+
+    .progress{height:10px; background:#e5e7eb; border-radius:999px; overflow:hidden}
+    .progress>div{height:100%; width:0%; background:var(--tio-blue)}
+
+    .footer{margin-top:28px; color:#e5e7eb; font-size:12px}
+    .kbd{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background:#e2e8f0; color:var(--ink); border:1px solid #cbd5e1; border-bottom-width:2px; padding:2px 6px; border-radius:6px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="card">
+      <div class="pill">INSM — Les 5</div>
+      <h1>Flashcard Quiz • Bedrijf‑specifiek (Marketing • Operations • Finance)</h1>
+      <p class="subtitle">Kies jouw bedrijf, beantwoord eerst zélf — daarna verschijnt feedback en een hint. Themakleur: <b style="color:var(--tio-blue)">Tio blauw</b>.</p>
+      <div class="grid">
+        <section>
+          <h3>1) Kies één bedrijf</h3>
+          <p class="subtitle">De vragen zijn hoger‑orde en sluiten aan bij derdejaarsniveau.</p>
+          <div class="company-list" id="companyList"></div>
+          <div style="display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap">
+            <input id="newCompany" type="text" placeholder="Of voeg je eigen bedrijf toe…" style="flex:1; padding:10px; border:1px solid #cbd5e1; border-radius:10px" />
+            <button class="btn sec" id="addCompany">Voeg toe</button>
+          </div>
+        </section>
+        <section>
+          <h3>2) Start de quiz</h3>
+          <p class="subtitle">15 vragen: 4× Marketing, 3× Operations, 8× Finance — met plausibele alternatieven.</p>
+          <button class="btn" id="startBtn" disabled>Start met gekozen bedrijf</button>
+          <div style="margin-top:10px" class="subtitle">Didactische tip: verwoord <em>hardop</em> je redenering (active recall) voor je op <em>Hint</em> klikt.</div>
+        </section>
+      </div>
+    </header>
+
+    <main id="quiz" style="display:none; margin-top:18px" class="card">
+      <div class="q-head">
+        <div class="q-topic" id="qTopic">—</div>
+        <div style="min-width:200px; text-align:right">
+          <div style="font-weight:800"><span id="qNum">1</span>/<span id="qTotal">15</span></div>
+          <div class="progress" aria-label="voortgang"><div id="progressBar"></div></div>
+        </div>
+      </div>
+      <div class="q-card">
+        <div class="q-title" id="qTitle">—</div>
+        <form id="qForm" class="choices"></form>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px">
+          <button class="btn" id="submitBtn" disabled>Antwoord controleren</button>
+          <button class="btn sec" id="helpBtn" type="button">Hint</button>
+          <button class="btn sec" id="theoryBtn" type="button">Theorie‑uitleg</button>
+          <button class="btn sec" id="glossBtn" type="button">Afkortingen</button>
+        </div>
+        <div id="feedbackOK" class="feedback ok" role="status"></div>
+        <div id="feedbackNO" class="feedback no" role="status"></div>
+        <div id="hintBox" class="hint"></div>
+        <div id="theoryBox" class="hint" style="display:none"></div>
+        <div id="glossaryBox" class="hint" style="display:none"></div>
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-top:14px">
+        <button class="btn sec" id="prevBtn" type="button">⟵ Vorige</button>
+        <button class="btn" id="nextBtn" type="button">Volgende ⟶</button>
+      </div>
+    </main>
+
+    <section id="result" style="display:none; margin-top:18px" class="card">
+      <h2>Resultaat</h2>
+      <p>Score: <b id="scoreText">0/15</b></p>
+      <div class="subtitle">Tip: noteer per domein 1 kerninzicht dat je meeneemt naar de volgende les.</div>
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap">
+        <button class="btn" id="retryBtn">Opnieuw met hetzelfde bedrijf</button>
+        <button class="btn sec" id="homeBtn">Terug naar start</button>
+      </div>
+    </section>
+
+    <p class="footer">Gebaseerd op <span class="kbd">Les 5</span> — Detaillering van Marketing, Operations en Finance. Definities: balans (momentopname), winst-&-verlies (periode), cashflow (geldstroom).</p>
+  </div>
+
+  <script>
+  const CONFIG = {
+    companies:["Uber","Airbnb","CBRE","Tony Chocoloni","Heineken","Moncler","Amazon","Disney"],
+    themeColor:getComputedStyle(document.documentElement).getPropertyValue('--tio-blue').trim()
+  };
+
+  // Helper om vragen te definiëren
+  function q(topic, stem, choices, correct, explain, hint){
+    return {topic, type:"mc", stem, choices, correct, explain, hint};
+  }
+
+  // 15 hogere‑orde vragen (4 MKT, 3 OPS, 8 FIN). Alle alternatieven zijn plausibel.
+  function buildPool(c){
+    return [
+      // Marketing (4)
+      q("Marketing","Voor {{c}}: welke expansieroute is strategisch het meest verdedigbaar op middellange termijn?",
+        ["Marktpenetratie via prijsprikkels in bestaande markten",
+         "Marktontwikkeling met lokale aanpassing van propositie",
+         "Productontwikkeling los van kerncompetenties",
+         "Diversificatie richting niet‑verwante sectoren"],
+        1,
+        "Marktontwikkeling houdt de propositie dicht bij de kern en reduceert executierisico t.o.v. niet‑verwante diversificatie.",
+        "Ansoff: beoordeel risico/fit per kwadrant."),
+
+      q("Marketing","Welke KPI geeft de meest integrale indicatie van klantwaarde bij {{c}}?",
+        ["Omzetgroei jaar‑op‑jaar",
+         "Marktaandeel in kernsegment",
+         "Customer Lifetime Value (CLV) gecorrigeerd voor churn",
+         "Gemiddelde orderwaarde (AOV)"],
+        2,
+        "CLV incorporeert aankoopfrequentie, marge en retentie en is daarom rijker dan enkel AOV of share.",
+        "Kijk naar waarde over tijd, niet één transactie."),
+
+      q("Marketing","De positionering van {{c}} moet…",
+        ["primair differentiëren op één geloofwaardige as",
+         "zoveel mogelijk claims combineren voor maximale aantrekkingskracht",
+         "voornamelijk prijscommunicatie gebruiken om share te winnen",
+         "identiek zijn in alle landen om schaal te halen"],
+        0,
+        "Focus op één geloofwaardige as vergroot consistentie tussen belofte en capabilities.",
+        "Koppel belofte aan wat operations kan waarmaken."),
+
+      q("Marketing","Bij internationalisering van {{c}} is welke factor doorslaggevend voor markt‑fit?",
+        ["Culturele afstemming van waardepropositie",
+         "Opschalen van paid media budget",
+         "Automatische lokalisatie van de website",
+         "Prijsdaling om early adopters te winnen"],
+        0,
+        "Culturele afstemming bepaalt adoption; media/prijs helpen pas als de propositie resoneert.",
+        "Gebruik local insights en test‑and‑learn."),
+
+      // Operations (3)
+      q("Operations","Welke structurele trade‑off is het meest kritisch voor {{c}}?",
+        ["Kosten versus kwaliteit",
+         "Voorraadniveau versus leverbetrouwbaarheid",
+         "Capaciteit versus flexibiliteit",
+         "Schaalbaarheid versus maatwerk"],
+        1,
+        "Te lage voorraad schaadt servicegraad; te hoge bindt werkkapitaal en verhoogt verouderingsrisico.",
+        "Bepaal service‑level en veiligheidsvoorraad doelbewust."),
+
+      q("Operations","Welke kwaliteitsaanpak borgt duurzame verbetering bij {{c}}?",
+        ["Continue verbeterprogramma's (Lean/Kaizen) met PDCA‑cycli",
+         "Jaarlijkse audits door extern bureau",
+         "Reactieve klachtenafhandeling met service vouchers",
+         "Ad‑hoc projectgroepen bij incidenten"],
+        0,
+        "Continue verbetering voorkomt terugval en legt root‑cause bloot; audits en vouchers zijn momentopnames.",
+        "Vergelijk TQM, SPC en standaardisatie."),
+
+      q("Operations","Wat is het grootste risico van vergaande outsourcing bij {{c}}?",
+        ["Verlies van regie op kernprocessen en kwaliteitsstandaarden",
+         "Hogere vaste kosten door eigen personeel",
+         "Minder contractuele complexiteit",
+         "Betere toegang tot schaalvoordelen"],
+        0,
+        "Kernprocessen uitbesteden vergroot afhankelijkheid en kan de belofte ondermijnen.",
+        "Bepaal make‑or‑buy op strategische fit."),
+
+      // Finance (8)
+      q("Finance","{{c}} rapporteert nettowinst maar ervaart krappe kas. Wat is het meest waarschijnlijke mechanisme?",
+        ["Hoge afschrijvingen drukken kas",
+         "Stijgende debiteuren en voorraadopbouw leggen cash vast",
+         "Lage interestlasten verlagen uitgaande kas",
+         "Daling van crediteuren versnelt kasinstroom"],
+        1,
+        "Werkkapitaal (AR/voorraad) vreet kas terwijl winst op transactiebasis wordt geboekt.",
+        "Scan cashflow uit operationele activiteiten (indirecte methode)."),
+
+      q("Finance","Welke ratio beoordeel je primair voor kapitaalstructuur‑risico?",
+        ["Current ratio",
+         "Debt‑to‑Equity",
+         "Brutomarge",
+         "Voorraadrotatie"],
+        1,
+        "D/E weerspiegelt hefboom en buffer van eigen vermogen.",
+        "Combineer met interest coverage voor draagkracht."),
+
+      q("Finance","Negatieve operationele cashflow ondanks positieve winst duidt vaak op…",
+        ["stijgende debiteuren en dalende crediteuren",
+         "hoge afschrijvingen",
+         "eenmalige herstructureringslasten",
+         "latente belastingvorderingen"],
+        0,
+        "AR ↑ en AP ↓ draaien de kaspositie om ondanks winst.",
+        "Check mutaties in working capital."),
+
+      q("Finance","Welke investeringscriteria geeft de beste waarde‑inschatting voor {{c}}?",
+        ["Payback‑periode",
+         "Interne Rentabiliteit (IRR)",
+         "Netto Contante Waarde (NCW)",
+         "Accounting Rate of Return"],
+        2,
+        "NCW disconteert alle kasstromen en is het meest waarde‑gericht.",
+        "Let op: IRR kan misleiden bij niet‑conventionele stromen."),
+
+      q("Finance","Waarom kan een hoge current ratio een vals gevoel van veiligheid geven?",
+        ["Omdat vlottende activa deels illiquide kunnen zijn (voorraad)",
+         "Omdat hij solvabiliteit negeert",
+         "Omdat hij geen kostenstructuur toont",
+         "Omdat hij seizoenseffecten uitvlakt"],
+        0,
+        "Veel voorraad ≠ direct incasseerbare kas; samenstelling is cruciaal.",
+        "Analyseer quick ratio en voorraadkwaliteit."),
+
+      q("Finance","Bruto‑ t.o.v. nettomarge: wat is de fijnste onderscheiding?",
+        ["Brutomarge bevat alleen directe productiekosten; nettomarge ook OPEX/financiering/belastingen",
+         "Nettomarge corrigeert enkel voor marketingkosten",
+         "Brutomarge is altijd lager",
+         "Ze meten identiek dezelfde stap"],
+        0,
+        "Nettomarge komt na OPEX, interest en belasting; bruto niet.",
+        "Loop de W&V‑trappen af: omzet → bruto → EBIT → netto."),
+
+      q("Finance","Bij inflatie: welk effect heeft FIFO t.o.v. LIFO (indien toegestaan)?",
+        ["FIFO → hogere gerapporteerde winst en hogere belastingdruk",
+         "FIFO → lagere winst door hogere actuele kosten",
+         "Geen verschil in winstgevendheid",
+         "LIFO → hogere winst door oude, goedkopere lagen"],
+        0,
+        "Oude, goedkopere lagen worden eerst verkocht → lagere COGS, hogere winst.",
+        "Koppel voorraadlagen aan prijsstijgingen."),
+
+      q("Finance","Welke operationele efficiency‑maatstaf is het meest richtinggevend voor {{c}}?",
+        ["Voorraadrotatie (COGS/gem. voorraad)",
+         "Current ratio",
+         "Debt ratio",
+         "Cash ratio"],
+        0,
+        "Rotatie toont omzetsnelheid en voorraadbeheerkwaliteit.",
+        "Benchmarks verschillen per sector."),
+
+      q("Finance","Welke combinatie duidt op gezonde kasgeneratie uit de kern?",
+        ["Hoge nettowinst, negatieve operationele kasstroom, positieve investeringskasstroom",
+         "Stabiele operationele kasstroom, selectieve negatieve investeringskasstroom, neutrale financieringskasstroom",
+         "Negatieve operationele kasstroom en positieve financieringskasstroom",
+         "Positieve operationele kasstroom maar sterk negatieve financieringskasstroom"] ,
+        1,
+        "Kern genereert kas; investeringen gebruiken kas; beperkte financiering = gezond profiel.",
+        "Lees het kasstroomoverzicht per sectie: operationeel / investeringen / financiering.")
+    ].map(v=>({
+      ...v,
+      stem:v.stem.replaceAll("{{c}}", c)
+    }));
+  }
+
+  // — App‑state
+  let selectedCompany = null;
+  let questions = [];
+  let index = 0;
+  let score = 0;
+  let answered = [];
+
+  // — DOM refs
+  const companyList = document.querySelector('#companyList');
+  const startBtn = document.querySelector('#startBtn');
+  const addCompanyBtn = document.querySelector('#addCompany');
+  const newCompanyInput = document.querySelector('#newCompany');
+
+  const quiz = document.querySelector('#quiz');
+  const qTitle = document.querySelector('#qTitle');
+  const qTopic = document.querySelector('#qTopic');
+  const qForm = document.querySelector('#qForm');
+  const submitBtn = document.querySelector('#submitBtn');
+  const helpBtn = document.querySelector('#helpBtn');
+  const theoryBtn = document.querySelector('#theoryBtn');
+  const glossBtn = document.querySelector('#glossBtn');
+  const prevBtn = document.querySelector('#prevBtn');
+  const nextBtn = document.querySelector('#nextBtn');
+  const qNum = document.querySelector('#qNum');
+  const qTotal = document.querySelector('#qTotal');
+  const progressBar = document.querySelector('#progressBar');
+  const feedbackOK = document.querySelector('#feedbackOK');
+  const feedbackNO = document.querySelector('#feedbackNO');
+  const hintBox = document.querySelector('#hintBox');
+  const theoryBox = document.querySelector('#theoryBox');
+  const glossaryBox = document.querySelector('#glossaryBox');
+
+  const result = document.querySelector('#result');
+  const scoreText = document.querySelector('#scoreText');
+  const retryBtn = document.querySelector('#retryBtn');
+  const homeBtn = document.querySelector('#homeBtn');
+
+  // — Setup companies
+  function renderCompanies(){
+    companyList.innerHTML = '';
+    CONFIG.companies.forEach((name, i)=>{
+      const id = 'c_'+i;
+      const label = document.createElement('label');
+      label.className = 'company';
+      label.innerHTML = `<input type="radio" name="company" value="${name}" id="${id}"> <span>${name}</span>`;
+      label.addEventListener('change', ()=>{
+        label.querySelector('input').checked = true;
+        selectedCompany = name;
+        startBtn.disabled = false;
+      });
+      companyList.appendChild(label);
+    });
+  }
+  renderCompanies();
+
+  addCompanyBtn?.addEventListener('click', ()=>{
+    const val = newCompanyInput.value.trim();
+    if(!val) return;
+    CONFIG.companies.unshift(val);
+    newCompanyInput.value='';
+    renderCompanies();
+  });
+
+  // — Build & start
+  function buildQuestions(){
+    const pool = buildPool(selectedCompany);
+    return pool; // reeds 15 items
+  }
+
+  function startQuiz(){
+    questions = buildQuestions();
+    index = 0; score = 0; answered = new Array(questions.length).fill(false);
+    qTotal.textContent = String(questions.length);
+    document.querySelector('header').style.display='none';
+    result.style.display='none';
+    quiz.style.display='block';
+    renderQuestion();
+  }
+  startBtn.addEventListener('click', startQuiz);
+
+  function renderQuestion(){
+    const q = questions[index];
+    qTopic.textContent = q.topic;
+    qTitle.textContent = q.stem;
+    qNum.textContent = index+1;
+    progressBar.style.width = ((index)/questions.length*100).toFixed(1)+'%';
+
+    feedbackOK.style.display = 'none';
+    feedbackNO.style.display = 'none';
+    hintBox.style.display = 'none';
+    theoryBox.style.display = 'none';
+    glossaryBox.style.display = 'none';
+
+    qForm.innerHTML = '';
+    q.choices.forEach((c, i)=>{
+      const id = 'opt_'+index+'_'+i;
+      const label = document.createElement('label');
+      label.className = 'choice';
+      label.innerHTML = `<input type="radio" name="opt" value="${i}" id="${id}"><div>${c}</div>`;
+      label.addEventListener('change',()=>{ submitBtn.disabled = false; });
+      qForm.appendChild(label);
+    });
+    submitBtn.disabled = true; helpBtn.disabled = false; theoryBtn.disabled = false; glossBtn.disabled = false;
+  }
+
+  submitBtn.addEventListener('click', (e)=>{
+    e.preventDefault();
+    const q = questions[index];
+    const sel = qForm.querySelector('input[name="opt"]:checked');
+    if(!sel) return;
+    const choice = parseInt(sel.value,10);
+    if(choice === q.correct){
+      feedbackOK.textContent = '✔ Correct! '+q.explain;
+      feedbackOK.style.display = 'block';
+      feedbackNO.style.display = 'none';
+      if(!answered[index]){ score++; answered[index] = true; }
+    } else {
+      feedbackNO.textContent = '✖ Niet helemaal. '+q.explain;
+      feedbackNO.style.display = 'block';
+      feedbackOK.style.display = 'none';
+    }
+  });
+
+  helpBtn.addEventListener('click', ()=>{
+    const q = questions[index];
+    const hint = q.hint || 'Denk aan de samenhang tussen Marketing (belofte), Operations (uitvoering) en Finance (resultaat).';
+    hintBox.textContent = hint;
+    hintBox.style.display = 'block';
+  });
+
+  theoryBtn.addEventListener('click', ()=>{
+    const q = questions[index];
+    const preface = `Wat wordt hier getoetst? → ${q.topic}.\nKernbegrip/denklijn: `;
+    const extra = (q.topic==='Finance') ? 'Balans = foto • W&V = film • Cashflow = bloedstroom. ' : '';
+    const body = (q.explain || '').trim();
+    const tip = (q.hint || '').trim();
+    const text = `${preface}${extra}${body ? body : 'Lees de opties zorgvuldig en vergelijk definities/driver‑effecten.'}${tip ? `\nHint: ${tip}` : ''}`;
+    theoryBox.textContent = text;
+    theoryBox.style.display = 'block';
+  });
+
+  const GLOSSARY = {
+    'CLV / LTV':'Customer Lifetime Value: contante waarde van toekomstige marge per klant (na churn).',
+    'CAC':'Customer Acquisition Cost: marketing- en saleskosten per nieuwe klant.',
+    'AR (Debiteuren)':'Accounts Receivable: uitstaande vorderingen; stijging = kas nog niet binnen.',
+    'AP (Crediteuren)':'Accounts Payable: te betalen posten; stijging = later uitgaande kas.',
+    'WC (Werkkapitaal)':'Vlottende activa minus kortlopende verplichtingen; vaak AR + Voorraad – AP.',
+    'COGS':'Cost of Goods Sold: directe kosten bij omzet.',
+    'EBITDA / EBIT':'Winst zonder/ met afschrijvingen; operationele winstindicatoren.',
+    'CAPEX / OPEX':'Investeringen in vaste activa vs. operationele kosten.',
+    'NCW / NPV':'Netto Contante Waarde; som van gedisconteerde kasstromen.',
+    'IRR':'Interne rentabiliteit; discontovoet die NCW = 0 maakt.',
+    'WACC':'Gewogen gemiddelde kapitaalkosten; discontovoet voor projecten.',
+    'FIFO':'First-In, First-Out: oudste voorraad eerst uit; bij inflatie vaak hogere winst.',
+    'LIFO (niet in IFRS)':'Last-In, First-Out: nieuwste voorraad eerst; bij inflatie lagere winst (US GAAP).',
+    'D/E ratio':'Debt-to-Equity; maat voor financiële hefboom/solvabiliteit.',
+    'Current / Quick ratio':'Liquiditeitsratio’s; quick sluit voorraden uit.',
+    'NPS':'Net Promoter Score; aanbevelingsbereidheid.',
+    'ASP':'Average Selling Price.',
+    'ARPU':'Average Revenue Per User.'
+  };
+
+  glossBtn.addEventListener('click', ()=>{
+    const terms = Object.entries(GLOSSARY).map(([k,v])=>`• ${k}: ${v}`).join('\n');
+    glossaryBox.textContent = `Afkortingen & begrippen:\n${terms}`;
+    glossaryBox.style.display = 'block';
+  });
+
+  nextBtn.addEventListener('click', ()=>{
+    if(index < questions.length-1){ index++; renderQuestion(); }
+    else {
+      progressBar.style.width = '100%';
+      quiz.style.display='none';
+      result.style.display='block';
+      scoreText.textContent = `${score}/${questions.length}`;
+    }
+  });
+  prevBtn.addEventListener('click', ()=>{ if(index>0){ index--; renderQuestion(); } });
+
+  retryBtn?.addEventListener('click', startQuiz);
+  homeBtn?.addEventListener('click', ()=>{ location.reload(); });
+
+  // Toetsenbord snelkeuzes
+  window.addEventListener('keydown', (e)=>{
+    if(e.key>='1' && e.key<='9'){
+      const n = parseInt(e.key,10)-1;
+      const opt = qForm.querySelectorAll('input[name="opt"]')[n];
+      if(opt){ opt.click(); }
+    }
+    if(e.key==='Enter'){ if(!submitBtn.disabled) submitBtn.click(); }
+    if(e.key==='ArrowRight'){ nextBtn.click(); }
+    if(e.key==='ArrowLeft'){ prevBtn.click(); }
+  });
+
+  // — Minimale zelftests (ontwikkelaar/debug)
+  (function runSelfTests(){
+    try{
+      console.assert(typeof buildPool === 'function', 'buildPool moet bestaan');
+      const sample = buildPool('Amazon');
+      console.assert(Array.isArray(sample) && sample.length === 15, 'Er moeten 15 vragen zijn');
+      const allOk = sample.every(v=>v && v.topic && v.stem && Array.isArray(v.choices) && v.choices.length===4 && Number.isInteger(v.correct) && v.correct>=0 && v.correct<4);
+      console.assert(allOk, 'Elke vraag moet 4 opties en een geldige correct-index hebben');
+      console.assert(document.querySelector('#companyList'), '#companyList bestaat');
+      console.log('%cSelf-tests OK','color:green');
+    }catch(err){
+      console.error('Self-tests gefaald:', err);
+    }
+  })();
+  </script>
+</body>
+</html>
