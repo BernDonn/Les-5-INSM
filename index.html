@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>INSM — Les 5 Flashcard Quiz (bedrijf‑specifiek)</title>
+  <style>
+    :root{
+      --tio-blue:#2D0FDF;
+      --ink:#0f172a; /* slate-900 */
+      --muted:#475569; /* slate-600 */
+      --card:#f8fafc; /* slate-50 */
+      --ok:#16a34a;
+      --no:#dc2626;
+      --ring: rgba(45,15,223,.35);
+    }
+    html,body{height:100%}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+      background: var(--tio-blue);
+      color:#ffffff;
+    }
+    .container{max-width:980px;margin:0 auto;padding:24px}
+    .card{background:var(--card); border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 8px 24px rgba(2,6,23,.06); color:var(--ink)}
+    h1{font-size:clamp(20px,3.4vw,34px); line-height:1.1; margin:0 0 6px}
+    .subtitle{color:var(--muted); margin:0 0 16px}
+    .pill{display:inline-flex; align-items:center; gap:8px; background:#e2e8f0; color:var(--ink); border-radius:999px; padding:6px 12px; font-weight:700; font-size:12px; letter-spacing:.25px}
+    .grid{display:grid; gap:14px}
+    @media(min-width:720px){.grid{grid-template-columns:1fr 1fr}}
+
+    .company-list{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:8px}
+    .company{background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:12px; display:flex; align-items:center; gap:10px; cursor:pointer; transition:box-shadow .2s, border-color .2s}
+    .company input{accent-color:var(--tio-blue)}
+    .company:hover{box-shadow:0 6px 16px rgba(45,15,223,.12); border-color:#c7d2fe}
+
+    .btn{appearance:none; border:0; border-radius:14px; padding:12px 16px; font-weight:800; cursor:pointer; background:var(--tio-blue); color:white; box-shadow:0 10px 20px var(--ring)}
+    .btn:disabled{opacity:.55; cursor:not-allowed; box-shadow:none}
+    .btn.sec{background:white; color:var(--tio-blue); border:1px solid #c7d2fe}
+
+    .q-card{background:white; border:1px solid #e5e7eb; border-radius:16px; padding:18px}
+    .q-head{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px}
+    .q-topic{font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:.14em; color:var(--tio-blue)}
+    .q-title{font-size:clamp(16px,2.4vw,22px); font-weight:750; margin:8px 0}
+
+    .choices{display:grid; gap:10px; margin:10px 0 6px}
+    .choice{border:1px solid #e5e7eb; border-radius:12px; padding:12px; background:#fdfdfd; display:flex; align-items:flex-start; gap:10px; cursor:pointer; transition: border-color .15s, background .15s}
+    .choice:hover{border-color:#cbd5e1}
+    .choice input{margin-top:2px; accent-color:var(--tio-blue)}
+
+    .feedback{border-radius:12px; padding:12px; margin-top:12px; display:none}
+    .feedback.ok{display:block; background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46}
+    .feedback.no{display:block; background:#fef2f2; border:1px solid #fecaca; color:#7f1d1d}
+
+    .hint{margin-top:10px; background:#eef2ff; border:1px dashed #c7d2fe; color:#1e3a8a; padding:10px; border-radius:10px; display:none}
+
+    .progress{height:10px; background:#e5e7eb; border-radius:999px; overflow:hidden}
+    .progress>div{height:100%; width:0%; background:var(--tio-blue)}
+
+    .footer{margin-top:28px; color:#e5e7eb; font-size:12px}
+    .kbd{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background:#e2e8f0; color:var(--ink); border:1px solid #cbd5e1; border-bottom-width:2px; padding:2px 6px; border-radius:6px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="card">
+      <div class="pill">INSM — Les 5</div>
+      <h1>Flashcard Quiz • Bedrijf‑specifiek (Marketing • Operations • Finance)</h1>
+      <p class="subtitle">Kies jouw bedrijf, beantwoord eerst zélf — daarna verschijnt feedback en een hint. Themakleur: <b style="color:var(--tio-blue)">Tio blauw</b>.</p>
+      <div class="grid">
+        <section>
+          <h3>1) Kies één bedrijf</h3>
+          <p class="subtitle">De vragen worden afgestemd op het bedrijfstype (platform, retail, luxe, media, etc.).</p>
+          <div class="company-list" id="companyList"></div>
+          <div style="display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap">
+            <input id="newCompany" type="text" placeholder="Of voeg je eigen bedrijf toe…" style="flex:1; padding:10px; border:1px solid #cbd5e1; border-radius:10px" />
+            <button class="btn sec" id="addCompany">Voeg toe</button>
+          </div>
+        </section>
+        <section>
+          <h3>2) Start de quiz</h3>
+          <p class="subtitle">10 vragen: 4× Marketing, 3× Operations, 3× Finance — gebaseerd op de werkvorm <em>Bedrijf als lichaam</em>.</p>
+          <button class="btn" id="startBtn" disabled>Start met gekozen bedrijf</button>
+          <div style="margin-top:10px" class="subtitle">Didactische tip: verwoord <em>hardop</em> je redenering. Active recall > herlezen.</div>
+        </section>
+      </div>
+    </header>
+
+    <main id="quiz" style="display:none; margin-top:18px" class="card">
+      <div class="q-head">
+        <div class="q-topic" id="qTopic">—</div>
+        <div style="min-width:180px; text-align:right">
+          <div style="font-weight:800"><span id="qNum">1</span>/10</div>
+          <div class="progress" aria-label="voortgang"><div id="progressBar"></div></div>
+        </div>
+      </div>
+      <div class="q-card">
+        <div class="q-title" id="qTitle">—</div>
+        <form id="qForm" class="choices"></form>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px">
+          <button class="btn" id="submitBtn" disabled>Antwoord controleren</button>
+          <button class="btn sec" id="helpBtn" disabled type="button">Geef me een hint</button>
+        </div>
+        <div id="feedbackOK" class="feedback ok" role="status"></div>
+        <div id="feedbackNO" class="feedback no" role="status"></div>
+        <div id="hintBox" class="hint"></div>
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-top:14px">
+        <button class="btn sec" id="prevBtn" type="button">⟵ Vorige</button>
+        <button class="btn" id="nextBtn" type="button">Volgende ⟶</button>
+      </div>
+    </main>
+
+    <section id="result" style="display:none; margin-top:18px" class="card">
+      <h2>Resultaat</h2>
+      <p>Score: <b id="scoreText">0/10</b></p>
+      <div class="subtitle">Tip: noteer per domein 1 kerninzicht dat je meeneemt naar de volgende les.</div>
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap">
+        <button class="btn" id="retryBtn">Opnieuw met hetzelfde bedrijf</button>
+        <button class="btn sec" id="homeBtn">Terug naar start</button>
+      </div>
+    </section>
+
+    <p class="footer">Gebaseerd op <span class="kbd">Les 5</span> — Detaillering van Marketing, Operations en Finance. Definities: balans (momentopname), winst-&-verlies (periode), cashflow (geldstroom).</p>
+  </div>
+
+  <script>
+  const CONFIG = {
+    companies:["Uber","Airbnb","CBRE","Tony Chocoloni","Heineken","Moncler","Amazon","Disney"],
+    themeColor:getComputedStyle(document.documentElement).getPropertyValue('--tio-blue').trim()
+  };
+
+  // ——— Hulpfuncties om vragen te definiëren ———
+  function q(topic, stem, choices, correct, explain, hint){
+    return {topic, type:"mc", stem, choices, correct, explain, hint};
+  }
+  function qM(topic, stem, choices, correct, explain, hint){ return q(topic, stem, choices, correct, explain, hint); }
+  function qO(topic, stem, choices, correct, explain, hint){ return q(topic, stem, choices, correct, explain, hint); }
+  function qF(topic, stem, choices, correct, explain, hint){ return q(topic, stem, choices, correct, explain, hint); }
+
+  // ——— Per‑bedrijf vraagpools (elk 10 vragen: 4 MKT, 3 OPS, 3 FIN) ———
+  const pools = {
+    "Uber": [
+      qM("Marketing","Wat is voor {{c}} cruciaal om vraag en aanbod op het platform te matchen?",["Brandingcampagnes","Ritprijs‑regulatie zonder variatie","Netwerkeffecten en liquiditeit aan beide zijden","Alleen B2B‑contracten"],2,
+         "Platformsucces hangt af van voldoende rijders én passagiers (liquiditeit/netwerkeffect).","Denk aan kip‑ei en wachttijd/ETA."),
+      qM("Marketing","Welke positionering past het best bij {{c}}?",["Ultra‑luxe niche","Massamarkt on‑demand mobiliteit","Alleen internationale businessclass","Alleen taxi‑licenties verkopen"],1,
+         "Uber positioneert zich als brede on‑demand mobiliteitsoplossing.","Kijk naar waarde: gemak, snelheid, bereik."),
+      qM("Marketing","Welke metric past het meest bij waardecreatie voor {{c}}?",["Gem. wachttijd/ETA","Boekwaarde panden","Aantal fabriekshallen","Inventariswaarde"],0,
+         "Klantwaarde = korte ETA en beschikbaarheid.","Service level ~ experience."),
+      qM("Marketing","Welke groeistrategie is het meest logisch?",["Nieuwe steden openen met lokale promoties","Alle budget naar televisie","Alleen prijs verhogen","Stoppen met promoties"],0,
+         "Locatie‑expansie gecombineerd met incentives bouwt liquiditeit.","Aanbod en vraag tegelijk laten groeien."),
+      qO("Operations","Wat helpt {{c}} piekvraag (bijv. regen) op te vangen?",["Surge‑pricing en flexibele capaciteit","Vaste tarieven zonder prikkels","Handmatige rittoewijzing","Langere wachtrijen accepteren"],0,
+         "Dynamische prijs en matching alloceren capaciteit waar nodig.","Prijs = signaal; capaciteit = respons."),
+      qO("Operations","Wat is een operationeel risico?",["Overcapaciteit bij partners","Geen data","Geen klantenservice nodig","Geen chauffeursselectie"],0,
+         "Overcapaciteit drukt inkomsten per chauffeur en servicekwaliteit.","Kwaliteitscontrole blijft essentieel."),
+      qO("Operations","Welke KPI past bij betrouwbaarheid?",["% ritten zonder annulering","Kantoorkost per m²","Boekwaarde servers","Aantal posters"],0,
+         "Annuleringsrate en on‑time pickup meten servicekwaliteit.","Zie service‑operations."),
+      qF("Finance","Wat verklaart winst ≠ cash bij {{c}}?",["Ritten op rekening (debiteuren)","Onmogelijk","Winst is altijd cash","Alleen voorraad"],0,
+         "Op rekening verkopen → winst geboekt, cash later.","Film vs bloedstroom."),
+      qF("Finance","Wat typeert de balans van {{c}}?",["Momentopname assets/schulden","Alleen cashbewegingen","Alleen omzet per segment","Alleen voorraad"],0,
+         "Balans = foto op één moment.","Foto/film/bloed"),
+      qF("Finance","Welke kostenpost is typisch hoog bij {{c}}?",["Capex in fabrieken","Platform‑ontwikkeling en support","Voorraadbederf","Afschrijvingen op winkelpanden"],1,
+         "Techplatforms dragen OPEX in ontwikkeling, infra en support.","Niet productvoorraad, maar software/infra.")
+    ],
+
+    "Airbnb": [
+      qM("Marketing","Welk element bouwt vertrouwen bij {{c}}?",["Anonieme profielen","Beoordelingen en verificatie","Alleen lage prijs","Geen foto’s"],1,
+         "Twee‑zijdig vertrouwen via reviews/ID/garanties.","Trust & safety."),
+      qM("Marketing","Welke doelgroep is kern?",["Hotels","Particuliere en professionele hosts + reizigers","Alleen zakelijke reizigers","Alleen backpackers"],1,
+         "Platform verbindt hosts en gasten in brede segmenten.","Twee‑zijdige markt."),
+      qM("Marketing","Welke propositie past?",["Gestandaardiseerde kamers","Unieke verblijfservaringen","Alleen vervoer","Alleen events"],1,
+         "Differentiatie: unieke ervaringen/locaties.","Experience/variety."),
+      qM("Marketing","Welke metric is het meest marketing‑gericht?",["Nights booked","Boekwaarde voertuigen","Voorraad‑omloopsnelheid","Bezettingsgraad van fabrieken"],0,
+         "Nights booked vangt vraagrealisatie.","Funnel: search→book."),
+      qO("Operations","Seizoenspiek managen?",["Flexibele pricing en minimale verblijfsduur","Vaste prijs","Handmatig toewijzen","Geen support"],0,
+         "Revenue‑management en regels sturen capaciteit.","Yield/availability."),
+      qO("Operations","Belangrijk voor kwaliteit?",["Slechts foto’s","SLA’s en schoonmaakstandaarden","Geen beleid","Alleen prijs"],1,
+         "Standaarden + checks borgen experience.","Ops = belofte waarmaken."),
+      qO("Operations","Risico bij mismatch?",["Hogere loyaliteit","Klachten over hygiëne/safety","Meer liquiditeit","Automatische tevredenheid"],1,
+         "Mismatch → klachten en churn.","Ops‑fit"),
+      qF("Finance","Balans laat zien…",["Kasstromen","Momentopname assets/schulden","Alleen omzet","Alleen winst"],1,
+         "Foto.","Foto/film/bloed"),
+      qF("Finance","W&V laat zien…",["Film: opbrengsten/kosten","Alleen cash","Momentopname","Alleen voorraad"],0,
+         "Film.","Foto/film/bloed"),
+      qF("Finance","Waarom positieve winst maar negatieve kas?",["Gasten betalen altijd contant","Debiteuren en vooruitbetalingen","Onmogelijk","Alleen voorraad"],1,
+         "Timingverschillen in cash vs opbrengsten.","Kas ≠ winst")
+    ],
+
+    "CBRE": [
+      qM("Marketing","CBRE richt zich primair op…",["Consumenten retail","B2B vastgoed‑ en facility‑diensten","Alleen horeca","Alleen e‑commerce"],1,
+         "CBRE is dienstverlener in B2B vastgoed.","Segment = zakelijke klanten."),
+      qM("Marketing","Waardepropositie?",["Lagere huur voor alle consumenten","End‑to‑end vastgoedadvies & beheer","Alleen advertenties","Productverkoop"],1,
+         "Advies, transacties, beheer/facility.","Serviceportfolio."),
+      qM("Marketing","Belangrijke metric?",["Marktaandeel in portefeuillediensten","Voorraad bederf","Gem. ticketprijs bioscoop","Wachttijd taxi"],0,
+         "Dienstenportefeuille/retentie.","B2B KPI's."),
+      qM("Marketing","Positionering die past?",["Budget discounter","Expertise & betrouwbaarheid","Alleen fun","Alleen prijs"],1,
+         "Professional services bouwen op trust/expertise.","Reputatie/trackrecord."),
+      qO("Operations","Operationele focus?",["Project governance en SLA's","Massaproductie","Bakkerijplanning","Ritmatching"],0,
+         "SLA/KPI‑gestuurd accountmanagement.","Processen & compliance."),
+      qO("Operations","Belangrijk risico?",["Smeltende voorraad","Contract- en compliance‑risico","Geen B2B klanten","Geen data"],1,
+         "Contractuele prestaties en compliance zijn kern.","Risicobeheersing."),
+      qO("Operations","Kwaliteit borgen via…",["Ad‑hoc werken","Gestandaardiseerde procedures en audits","Alleen prijs","Geen rapportages"],1,
+         "ISO/SLA‑achtige borging.","QA/QC"),
+      qF("Finance","Omzetmodel is vaak…",["Productmarge","Fees/retainers en success‑fees","Ticketverkoop","Abonnement bij consumenten"],1,
+         "Fee‑based services.","Dienstverlening ≠ productverkoop."),
+      qF("Finance","Balans toont…",["Periode‑opbrengsten","Momentopname assets/schulden","Alleen cash","Alleen voorraad"],1,
+         "Foto.","—"),
+      qF("Finance","Waardoor kan cashflow afwijken?",["Debiteuren/contracttermijnen","Onmogelijk","Altijd gelijk","Alleen voorraad"],0,
+         "Betaaltermijnen beïnvloeden kas.","Kas ≠ winst.")
+    ],
+
+    "Tony Chocoloni": [
+      qM("Marketing","Kernbelofte van {{c}} draait om…",["Laagste prijs","Eerlijke cacao‑keten en smaak","On‑demand mobiliteit","Hotelkamers"],1,
+         "Merkverhaal combineert missie (eerlijke keten) met productkwaliteit.","Propositie = missie + smaak."),
+      qM("Marketing","Doelgroep?",["B2B vastgoed","Bewuste consument + cadeaumarkt","Alleen zakelijke reizigers","Alleen luxe elite"],1,
+         "Bewuste consumenten waarderen traceerbaarheid/impact.","Segmenteer op waarden."),
+      qM("Marketing","Welke metric is relevant?",["% traceerbare bonen in keten","Aantal taxi's","Bezettingsgraad kamers","Capex fabrieken"],0,
+         "Impact‑metrics ondersteunen belofte.","KPI's op missie."),
+      qM("Marketing","Positionering?",["Massa‑bulk zonder verhaal","Impact‑gedreven premium chocolade","Alleen prijs","Alleen B2B"],1,
+         "Differentiatie via missie en kwaliteit.","Verhaal = waarde."),
+      qO("Operations","Wat is operationele prioriteit?",["Traceerbaarheid en leveranciersaudits","Ritmatching","Facilitair beheer","Streaming capaciteit"],0,
+         "Supply‑chain due diligence om belofte waar te maken.","Ops = missie waarmaken."),
+      qO("Operations","Risico bij mismatch?",["Hogere loyaliteit","Reputatieschade bij ketenissues","Meer liquiditeit","Lagere CAC"],1,
+         "Ethiek‑mismatch → reputatierisico.","Keten = kern."),
+      qO("Operations","Kwaliteit borgen via…",["Random inkoop","Langdurige relaties & contracten","Geen QA","Alleen prijs"],1,
+         "Relaties + contracten ondersteunen kwaliteit/duurzaamheid.","SRM/QA."),
+      qF("Finance","Waarom winst ≠ cash?",["Voorfinanciering oogst/voorraad","Onmogelijk","Altijd gelijk","Geen voorraad"],0,
+         "Seizoensinkoop en voorraad leggen cash vast.","Kas ≠ winst."),
+      qF("Finance","Balans toont…",["Kasstromen","Momentopname assets/schulden","Alleen omzet","Alleen winst"],1,
+         "Foto.","—"),
+      qF("Finance","Welke kostenpost kan relatief groot zijn?",["Marketing TV","Keten‑traceerbaarheid en certificering","Taxi‑lease","Parkenonderhoud"],1,
+         "Impact‑beoordeling/traceerbaarheid kost geld.","Cost to serve missie.")
+    ],
+
+    "Heineken": [
+      qM("Marketing","Wat typeert {{c}}'s merkstrategie?",["Monobrand","Multi‑brand portfolio in segmenten","Alleen B2B vastgoed","Alleen taxi"],1,
+         "Portfolio om verschillende doelgroepen/kanalen te bedienen.","On‑ & off‑trade."),
+      qM("Marketing","Belangrijke metric?",["Marktaandeel in categorie/markt","Aantal taxi's","% traceerbare cacao","Bezettingsgraad kamers"],0,
+         "Share meet concurrentiepositie.","Categorie‑KPI."),
+      qM("Marketing","Positionering in premium?",["Prijs = enige factor","Ervaring/kwaliteit/merkbeleving","Alleen kosten","Alleen logistiek"],1,
+         "Premium draait om merk‑ervaring + kwaliteit.","Brand equity."),
+      qM("Marketing","Kanaalkeuze?",["Alleen online","On‑trade (horeca) & off‑trade (retail)","Alleen direct","Geen distributie"],1,
+         "Dubbele kanaalstrategie is typisch.","Route‑to‑market."),
+      qO("Operations","Seizoenspieken managen?",["Capaciteit en voorraadplanning","Alleen prijs verhogen","Geen planning","Random"],0,
+         "Warm weer/events → vraagpiek: productie/logistiek opschalen.","S&OP."),
+      qO("Operations","Kwaliteitsborging?",["Consistente receptuur/QA","Geen QA","Alleen prijs","Random gist"],0,
+         "QA cruciaal voor smaakconsistentie.","Brouwproces."),
+      qO("Operations","Risico?",["Geen seizoenen","Ketenonderbreking grondstoffen","Geen distributie","Geen concurrenten"],1,
+         "Grondstoffen/logistiek beïnvloeden leverbetrouwbaarheid.","Supply risk."),
+      qF("Finance","Waarom winst ≠ cash?",["Voorraadopbouw hoogseizoen","Onmogelijk","Altijd gelijk","Alleen debiteuren"],0,
+         "Seizoensvoorraad bindt cash.","Kas ≠ winst."),
+      qF("Finance","Balans toont…",["Momentopname assets/schulden","Alleen omzet","Kasstromen","Alleen winst"],0,
+         "Foto.","—"),
+      qF("Finance","Belangrijke kostenpost?",["Parkenonderhoud","Productie & distributie","Taxi‑lease","Hotelkamers"],1,
+         "Capex/Opex rond brouwen en logistiek.","Cost to serve.")
+    ],
+
+    "Moncler": [
+      qM("Marketing","Kern van {{c}}'s positionering?",["Low‑cost massa","Luxe buitenkleding met sterk merk","Alleen B2B","Alleen functionaliteit"],1,
+         "Luxe = merk, design, schaarste.","Value ≠ alleen functie."),
+      qM("Marketing","Welke groeikeuze past?",["Discount uitverkopen","Selectieve distributie/flagships","Alleen marktplaats","Alleen groothandel"],1,
+         "Controle over merkervaring.","Channel strategy."),
+      qM("Marketing","Relevante metric?",["Average selling price (ASP)","Wachttijd rit","% traceerbare cacao","Bezettingsgraad kamers"],0,
+         "ASP weerspiegelt premium‑kracht.","Prijs‑mix."),
+      qM("Marketing","Merkwaarde bouw je via…",["Overal korting","Consistente storytelling & collaboraties","Alleen logistiek","Random campagnes"],1,
+         "Luxe waarde = narratief + exclusiviteit.","Brand equity."),
+      qO("Operations","Seizoensvolatiliteit managen?",["Collectieplanning en supply‑flex","Geen planning","Altijd dezelfde voorraad","Alleen prijs"],0,
+         "Modekalender en demand planning.","S&OP."),
+      qO("Operations","Kwaliteit borgen via…",["Materialen/leveranciersselectie","Alleen prijs","Geen QA","Random"],0,
+         "Materiaalkeuze en leveranciers zijn cruciaal.","QA/SRM."),
+      qO("Operations","Risico voor luxe‑ervaring?",["Te brede distributie en overstock","Te weinig marketing","Te goede kwaliteit","Te hoge loyaliteit"],0,
+         "Overexposure ondermijnt schaarste.","Brand dilution."),
+      qF("Finance","Waarom winst ≠ cash?",["Voorfinanciering collecties/voorraad","Onmogelijk","Altijd gelijk","Geen voorraad"],0,
+         "Collecties vergen werkkapitaal.","Kas ≠ winst."),
+      qF("Finance","Balans toont…",["Momentopname assets/schulden","Alleen cashstromen","Alleen omzet","Alleen winst"],0,
+         "Foto.","—"),
+      qF("Finance","Belangrijke waarde‑driver?",["Brutowinstmarge via prijs‑mix","Taxi‑lease","Parkenonderhoud","Rit‑ETA"],0,
+         "Marge en mix bepalen winstgevendheid.","Unit economics.")
+    ],
+
+    "Amazon": [
+      qM("Marketing","Flywheel draait om…",["Duurdere prijzen","Keuze, prijs, gemak","Alleen offline winkels","Alleen advertenties"],1,
+         "Meer aanbod → betere ervaring → meer vraag → schaal.","Keuze/prijs/gemak."),
+      qM("Marketing","Kernpropositie retail?",["Unieke kamers","Same‑day/Prime‑gemak + breed assortiment","Alleen luxe","Alleen B2B vastgoed"],1,
+         "Gemak + breedte.","RTM & CX."),
+      qM("Marketing","Welke metric past?",["Conversie & herhaalaankopen","Boekwaarde panden","Bezettingsgraad kamers","% traceerbare cacao"],0,
+         "E‑commerce meet funnel en loyaliteit.","CLV/retentie."),
+      qM("Marketing","Marketplace‑keuze?",["Geen derde partijen","Combinatie 1P/3P verkopers","Alleen 1P","Alleen advertenties"],1,
+         "3P vergroot assortiment en prijscompetitie.","Netwerkeffect."),
+      qO("Operations","Operational excellence via…",["Fulfilment & last‑mile optimalisatie","Alleen TV‑reclame","Geen voorraadbeheer","Random picking"],0,
+         "FC‑processen bepalen belofte (snel/zeker).","Ops = belofte."),
+      qO("Operations","Risico?",["Te weinig data","Capaciteitspieken en retour‑kosten","Te veel loyaliteit","Geen concurrentie"],1,
+         "Pieken en returns drukken marges.","Kostenlekken."),
+      qO("Operations","KPI?",["On‑time delivery %","Bioscooptickets","% traceerbare cacao","Wachttijd taxi"],0,
+         "Leverbetrouwbaarheid = kern.","SLA."),
+      qF("Finance","Waarom winst ≠ cash?",["Voorraad en capex in logistiek","Onmogelijk","Altijd gelijk","Alleen debiteuren"],0,
+         "Werkkapitaal/capex binden cash.","Kas ≠ winst."),
+      qF("Finance","Balans toont…",["Momentopname assets/schulden","Alleen cashstromen","Alleen omzet","Alleen winst"],0,
+         "Foto.","—"),
+      qF("Finance","Kostenpost die zwaar weegt?",["Fulfilment & logistiek","Parkenonderhoud","Chauffeurslease","Keten‑certificering"],0,
+         "Distributie en fulfilmentkosten zijn significant.","Cost to serve.")
+    ],
+
+    "Disney": [
+      qM("Marketing","Kern van {{c}}'s waardepropositie?",["Generieke producten","IP/vertellingen en beleving","Alleen logistiek","Alleen prijs"],1,
+         "Sterke franchises en belevingswerelden.","IP‑monetisatie."),
+      qM("Marketing","Kanaal‑mix?",["Alleen bioscoop","Content + merchandise + parken + (DTC)","Alleen retail","Alleen B2B"],1,
+         "Multi‑kanaal monetisatie van IP.","Synergie tussen kanalen."),
+      qM("Marketing","Relevante metric?",["Franchise‑omzet/ARPU","Wachttijd taxi","% traceerbare cacao","ASP jassen"],0,
+         "Monetisatie per franchise/klant.","KPI op IP."),
+      qM("Marketing","Positionering?",["Low‑cost utilitair","Familie‑vriendelijke premium beleving","Alleen B2B","Alleen prijs"],1,
+         "Beleving/kwaliteit/veiligheid.","Brand promise."),
+      qO("Operations","Parken waarmaken…",["Capacity & crowd management","Geen planning","Alleen prijs","Geen SLA"],0,
+         "Beleving vraagt wachtrij‑ en personeelsoptimalisatie.","Ops = ervaring."),
+      qO("Operations","Contentproductie risico?",["Geen","Planning/kwaliteit/overruns","Altijd positief","Alleen voorraad"],1,
+         "Project‑ en kwaliteitsrisico's.","Studio‑ops."),
+      qO("Operations","KPI voor parken?",["Guest satisfaction/NPS","Boekwaarde taxi","% traceerbare cacao","Voorraad‑omloopsnelheid cacao"],0,
+         "Gastervaring staat centraal.","NPS/CSAT."),
+      qF("Finance","Waarom winst ≠ cash?",["Hoge capex in parken en content","Onmogelijk","Altijd gelijk","Geen capex"],0,
+         "Investeringen en werkkapitaal beïnvloeden kas.","Kas ≠ winst."),
+      qF("Finance","Balans toont…",["Momentopname assets/schulden","Alleen cashstromen","Alleen omzet","Alleen winst"],0,
+         "Foto.","—"),
+      qF("Finance","Waardedrijver?",["IP‑portefeuille en bezettingsgraad parken","Rit‑ETA","ASP cacao","Taxi‑lease"],0,
+         "Sterke IP en parkbezetting sturen resultaat.","Drivers.")
+    ]
+  };
+
+  // ——— Generieke fallback (indien docent eigen bedrijf toevoegt) ———
+  const genericBlueprint = [
+    qM("Marketing","Welke doelgroep past het best bij {{c}}'s waardepropositie?",["Breed massasegment","Duidelijk gedefinieerd segment","Alle consumenten wereldwijd","Alleen B2B lokaal"],1,
+       "Segmentatie verhoogt fit en focus.","Doelgroep • waarde • positionering."),
+    qM("Marketing","Wat beschrijft de waardepropositie van {{c}} het beste?",["Organogram","Unieke klantwaarde tov alternatieven","Kasstroomoverzicht","CAPEX‑planning"],1,
+       "Waarde = voordeel voor klant.","Vier C's: waarde, kosten, gemak, communicatie."),
+    qM("Marketing","Welke positionering is geloofwaardig voor {{c}}?",["Alles claimen tegelijk","Duidelijke keuze passend bij capabilities","Geen positionering nodig","Alleen prijs"],1,
+       "Koppel belofte aan wat ops kan leveren.","Consistentie."),
+    qM("Marketing","Welke metric hoort NIET primair bij marketing?",["Marktaandeel","CLV","Omzetgroei per segment","Boekwaarde vaste activa"],3,
+       "Boekwaarde ≠ marketingmetric.","Finance/ops vs marketing."),
+    qO("Operations","Welke keuze helpt de belofte te operationaliseren?",["Procesontwerp en capaciteit afstemmen","Alle budget naar ads","Alles outsourcen zonder analyse","Geen KPI's"],0,
+       "Ops vertaalt belofte naar uitvoering.","Supply chain, kwaliteit, personeelsbezetting."),
+    qO("Operations","GEEN kerntaak van operations?",["Procesontwerp","Kwaliteit borgen","Roostering","IFRS vaststellen"],3,
+       "IFRS is accounting.","—"),
+    qO("Operations","Risico bij mismatch marketing↔ops?",["Geen","Kwaliteitsproblemen en kostenlekken","Meer loyaliteit","Meer liquiditeit"],1,
+       "Mismatch schaadt winstgevendheid.","Ops‑fit"),
+    qF("Finance","Wat laat de balans zien?",["Kasstromen","Momentopname assets/schulden","Omzet per product","Alleen winst"],1,
+       "Balans = foto.","—"),
+    qF("Finance","Wat beschrijft de W&V?",["Foto op 31/12","Film van opbrengsten/kosten","Alleen kas","Alleen voorraad"],1,
+       "W&V = film.","—"),
+    qF("Finance","Winst maar negatieve cashflow: plausibel?",["Debiteuren/voorraadopbouw","Onmogelijk","Altijd gelijk","Geen voorraad"],0,
+       "Kas ≠ winst door timing/werkkapitaal.","Bloedstroom.")
+  ];
+
+  // ——— App‑state ———
+  let selectedCompany = null;
+  let questions = [];
+  let index = 0;
+  let score = 0;
+  let answered = new Array(10).fill(false);
+
+  // ——— DOM ———
+  const companyList = document.querySelector('#companyList');
+  const startBtn = document.querySelector('#startBtn');
+  const addCompanyBtn = document.querySelector('#addCompany');
+  const newCompanyInput = document.querySelector('#newCompany');
+
+  const quiz = document.querySelector('#quiz');
+  const qTitle = document.querySelector('#qTitle');
+  const qTopic = document.querySelector('#qTopic');
+  const qForm = document.querySelector('#qForm');
+  const submitBtn = document.querySelector('#submitBtn');
+  const helpBtn = document.querySelector('#helpBtn');
+  const prevBtn = document.querySelector('#prevBtn');
+  const nextBtn = document.querySelector('#nextBtn');
+  const qNum = document.querySelector('#qNum');
+  const progressBar = document.querySelector('#progressBar');
+  const feedbackOK = document.querySelector('#feedbackOK');
+  const feedbackNO = document.querySelector('#feedbackNO');
+  const hintBox = document.querySelector('#hintBox');
+
+  const result = document.querySelector('#result');
+  const scoreText = document.querySelector('#scoreText');
+  const retryBtn = document.querySelector('#retryBtn');
+  const homeBtn = document.querySelector('#homeBtn');
+
+  // ——— Setup companies ———
+  function renderCompanies(){
+    companyList.innerHTML = '';
+    CONFIG.companies.forEach((name, i)=>{
+      const id = 'c_'+i;
+      const label = document.createElement('label');
+      label.className = 'company';
+      label.innerHTML = `<input type="radio" name="company" value="${name}" id="${id}"> <span>${name}</span>`;
+      label.addEventListener('change', ()=>{
+        label.querySelector('input').checked = true;
+        selectedCompany = name;
+        startBtn.disabled = false;
+      });
+      companyList.appendChild(label);
+    });
+  }
+  renderCompanies();
+
+  addCompanyBtn.addEventListener('click', ()=>{
+    const val = newCompanyInput.value.trim();
+    if(!val) return;
+    CONFIG.companies.unshift(val);
+    newCompanyInput.value='';
+    renderCompanies();
+  });
+
+  // ——— Bouw vragen ———
+  function buildQuestions(){
+    const pool = pools[selectedCompany] || genericBlueprint;
+    // Injecteer bedrijfsnaam in de zinnen
+    return pool.map(b=>({
+      topic:b.topic,
+      type:b.type,
+      stem:b.stem.replaceAll('{{c}}', selectedCompany),
+      choices:[...b.choices],
+      correct:b.correct,
+      explain:b.explain,
+      hint:(b.hint||'') + (b.topic==='Finance' ? ' | Ezelsbrug: Balans=foto • W&V=film • Cashflow=bloed.' : '')
+    }));
+  }
+
+  // ——— Quiz‑flow ———
+  function startQuiz(){
+    questions = buildQuestions();
+    index = 0; score = 0; answered = new Array(questions.length).fill(false);
+    document.querySelector('header').style.display='none';
+    result.style.display='none';
+    quiz.style.display='block';
+    renderQuestion();
+  }
+  startBtn.addEventListener('click', startQuiz);
+
+  function renderQuestion(){
+    const q = questions[index];
+    qTopic.textContent = q.topic;
+    qTitle.textContent = q.stem;
+    qNum.textContent = index+1;
+    progressBar.style.width = ((index)/questions.length*100).toFixed(1)+'%';
+
+    feedbackOK.style.display = 'none';
+    feedbackNO.style.display = 'none';
+    hintBox.style.display = 'none';
+
+    qForm.innerHTML = '';
+    q.choices.forEach((c, i)=>{
+      const id = 'opt_'+index+'_'+i;
+      const label = document.createElement('label');
+      label.className = 'choice';
+      label.innerHTML = `<input type="radio" name="opt" value="${i}" id="${id}"><div>${c}</div>`;
+      label.addEventListener('change',()=>{ submitBtn.disabled = false; helpBtn.disabled = false; });
+      qForm.appendChild(label);
+    });
+    submitBtn.disabled = true; helpBtn.disabled = true;
+  }
+
+  submitBtn.addEventListener('click', (e)=>{
+    e.preventDefault();
+    const q = questions[index];
+    const sel = qForm.querySelector('input[name="opt"]:checked');
+    if(!sel) return;
+    const choice = parseInt(sel.value,10);
+    if(choice === q.correct){
+      feedbackOK.textContent = '✔ Correct! '+q.explain;
+      feedbackOK.style.display = 'block';
+      feedbackNO.style.display = 'none';
+      if(!answered[index]){ score++; answered[index] = true; }
+    } else {
+      feedbackNO.textContent = '✖ Niet helemaal. Lees de uitleg en verwoord je redenering. Daarna kun je een hint openen.';
+      feedbackNO.style.display = 'block';
+      feedbackOK.style.display = 'none';
+    }
+  });
+
+  helpBtn.addEventListener('click', ()=>{
+    const q = questions[index];
+    hintBox.textContent = q.hint || 'Denk aan de samenhang tussen Marketing (belofte), Operations (uitvoering) en Finance (resultaat).';
+    hintBox.style.display = 'block';
+  });
+
+  nextBtn.addEventListener('click', ()=>{
+    if(index < questions.length-1){ index++; renderQuestion(); }
+    else {
+      progressBar.style.width = '100%';
+      quiz.style.display='none';
+      result.style.display='block';
+      scoreText.textContent = `${score}/${questions.length}`;
+    }
+  });
+  prevBtn.addEventListener('click', ()=>{ if(index>0){ index--; renderQuestion(); } });
+
+  retryBtn.addEventListener('click', startQuiz);
+  homeBtn.addEventListener('click', ()=>{ location.reload(); });
+
+  // ——— Toetsenbord snelkeuzes ———
+  window.addEventListener('keydown', (e)=>{
+    if(e.key>='1' && e.key<='9'){
+      const n = parseInt(e.key,10)-1;
+      const opt = qForm.querySelectorAll('input[name="opt"]')[n];
+      if(opt){ opt.click(); }
+    }
+    if(e.key==='Enter'){ if(!submitBtn.disabled) submitBtn.click(); }
+    if(e.key==='ArrowRight'){ nextBtn.click(); }
+    if(e.key==='ArrowLeft'){ prevBtn.click(); }
+  });
+  </script>
+</body>
+</html>
